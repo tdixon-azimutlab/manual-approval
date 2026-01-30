@@ -1,13 +1,192 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/google/go-github/v43/github"
 )
+
+func TestNewApprovalEnvironment_WithLabels(t *testing.T) {
+	labels := []string{"bug", "enhancement", "help wanted"}
+
+	apprv, err := newApprovalEnvironment(
+		nil,
+		"owner/repo",
+		"owner",
+		12345,
+		[]string{"approver1"},
+		1,
+		"Test Issue",
+		"Test Body",
+		labels,
+		"owner",
+		"repo",
+		true,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(apprv.issueLabels) != len(labels) {
+		t.Fatalf("expected %d labels but got %d", len(labels), len(apprv.issueLabels))
+	}
+
+	for i, label := range apprv.issueLabels {
+		if label != labels[i] {
+			t.Fatalf("expected label %q but got %q at index %d", labels[i], label, i)
+		}
+	}
+}
+
+func TestNewApprovalEnvironment_WithoutLabels(t *testing.T) {
+	apprv, err := newApprovalEnvironment(
+		nil,
+		"owner/repo",
+		"owner",
+		12345,
+		[]string{"approver1"},
+		1,
+		"Test Issue",
+		"Test Body",
+		[]string{},
+		"owner",
+		"repo",
+		true,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(apprv.issueLabels) != 0 {
+		t.Fatalf("expected 0 labels but got %d", len(apprv.issueLabels))
+	}
+}
+
+func TestCreateApprovalIssue_WithLabels(t *testing.T) {
+	expectedLabels := []string{"bug", "enhancement"}
+	var capturedRequest github.IssueRequest
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" && strings.Contains(r.URL.Path, "/issues") {
+			if err := json.NewDecoder(r.Body).Decode(&capturedRequest); err != nil {
+				t.Fatalf("failed to decode request body: %v", err)
+			}
+
+			issue := &github.Issue{
+				Number:  github.Int(1),
+				HTMLURL: github.String("https://github.com/owner/repo/issues/1"),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(issue)
+			return
+		}
+		// Handle comment creation
+		if r.Method == "POST" && strings.Contains(r.URL.Path, "/comments") {
+			comment := &github.IssueComment{ID: github.Int64(1)}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(comment)
+			return
+		}
+	}))
+	defer server.Close()
+
+	client, err := github.NewEnterpriseClient(server.URL+"/", server.URL+"/", nil)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	apprv := &approvalEnvironment{
+		client:          client,
+		repoFullName:    "owner/repo",
+		repo:            "repo",
+		repoOwner:       "owner",
+		runID:           12345,
+		issueApprovers:  []string{"approver1"},
+		issueLabels:     expectedLabels,
+		targetRepoOwner: "owner",
+		targetRepoName:  "repo",
+	}
+
+	err = apprv.createApprovalIssue(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if capturedRequest.Labels == nil {
+		t.Fatal("expected labels to be set in request but was nil")
+	}
+
+	if len(*capturedRequest.Labels) != len(expectedLabels) {
+		t.Fatalf("expected %d labels but got %d", len(expectedLabels), len(*capturedRequest.Labels))
+	}
+
+	for i, label := range *capturedRequest.Labels {
+		if label != expectedLabels[i] {
+			t.Fatalf("expected label %q but got %q at index %d", expectedLabels[i], label, i)
+		}
+	}
+}
+
+func TestCreateApprovalIssue_WithoutLabels(t *testing.T) {
+	var capturedRequest github.IssueRequest
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" && strings.Contains(r.URL.Path, "/issues") {
+			if err := json.NewDecoder(r.Body).Decode(&capturedRequest); err != nil {
+				t.Fatalf("failed to decode request body: %v", err)
+			}
+
+			issue := &github.Issue{
+				Number:  github.Int(1),
+				HTMLURL: github.String("https://github.com/owner/repo/issues/1"),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(issue)
+			return
+		}
+		// Handle comment creation
+		if r.Method == "POST" && strings.Contains(r.URL.Path, "/comments") {
+			comment := &github.IssueComment{ID: github.Int64(1)}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(comment)
+			return
+		}
+	}))
+	defer server.Close()
+
+	client, err := github.NewEnterpriseClient(server.URL+"/", server.URL+"/", nil)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	apprv := &approvalEnvironment{
+		client:          client,
+		repoFullName:    "owner/repo",
+		repo:            "repo",
+		repoOwner:       "owner",
+		runID:           12345,
+		issueApprovers:  []string{"approver1"},
+		issueLabels:     []string{},
+		targetRepoOwner: "owner",
+		targetRepoName:  "repo",
+	}
+
+	err = apprv.createApprovalIssue(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if capturedRequest.Labels != nil {
+		t.Fatalf("expected labels to be nil but got %v", *capturedRequest.Labels)
+	}
+}
 
 func TestApprovalFromComments(t *testing.T) {
 	login1 := "login1"
