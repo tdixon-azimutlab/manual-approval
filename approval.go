@@ -21,13 +21,14 @@ type approvalEnvironment struct {
 	issueTitle          string
 	issueBody           string
 	issueApprovers      []string
+	issueLabels         []string
 	minimumApprovals    int
 	targetRepoOwner     string
 	targetRepoName      string
 	failOnDenial        bool
 }
 
-func newApprovalEnvironment(client *github.Client, repoFullName, repoOwner string, runID int, approvers []string, minimumApprovals int, issueTitle, issueBody string, targetRepoOwner string, targetRepoName string, failOnDenial bool) (*approvalEnvironment, error) {
+func newApprovalEnvironment(client *github.Client, repoFullName, repoOwner string, runID int, approvers []string, minimumApprovals int, issueTitle, issueBody string, issueLabels []string, targetRepoOwner string, targetRepoName string, failOnDenial bool) (*approvalEnvironment, error) {
 	repoOwnerAndName := strings.Split(repoFullName, "/")
 	if len(repoOwnerAndName) != 2 {
 		return nil, fmt.Errorf("repo owner and name in unexpected format: %s", repoFullName)
@@ -41,6 +42,7 @@ func newApprovalEnvironment(client *github.Client, repoFullName, repoOwner strin
 		repoOwner:        repoOwner,
 		runID:            runID,
 		issueApprovers:   approvers,
+		issueLabels:      issueLabels,
 		minimumApprovals: minimumApprovals,
 		issueTitle:       issueTitle,
 		issueBody:        issueBody,
@@ -96,11 +98,15 @@ func (a *approvalEnvironment) createApprovalIssue(ctx context.Context) error {
 		a.issueApprovers,
 		issueBody,
 	)
-	a.approvalIssue, _, err = a.client.Issues.Create(ctx, a.targetRepoOwner, a.targetRepoName, &github.IssueRequest{
+	issueRequest := &github.IssueRequest{
 		Title:     &issueTitle,
 		Body:      &issueBody,
 		Assignees: &a.issueApprovers,
-	})
+	}
+	if len(a.issueLabels) > 0 {
+		issueRequest.Labels = &a.issueLabels
+	}
+	a.approvalIssue, _, err = a.client.Issues.Create(ctx, a.targetRepoOwner, a.targetRepoName, issueRequest)
 	if err != nil {
 		return err
 	}

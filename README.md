@@ -50,6 +50,7 @@ steps:
       issue-title: "Deploying v1.3.5 to prod from staging"
       issue-body: "Please approve or deny the deployment of version v1.3.5."
       issue-body-file-path: relative/file_path/wrt/repo/root
+      issue-labels: "approval-required,deployment"
       exclude-workflow-initiator-as-approver: false
       fail-on-denial: true
       additional-approved-words: ''
@@ -62,6 +63,7 @@ steps:
 * `issue-title` is a string that will be used as the title of the approval-issue.
 * `issue-body` is a string that will be added as comments on the approval-issue.
 * `issue-body-file-path` is a string that is the file path, this file's content will be added as comments on the approval-issue. If both issue-body and issue-body-file-path are given, then the file contents are considered for issue comments. 
+* `issue-labels` is a comma separated list of labels to add to the approval issue. This is optional and defaults to an empty string (no labels).
 * `exclude-workflow-initiator-as-approver` is a boolean that indicates if the workflow initiator (determined by the `GITHUB_ACTOR` environment variable) should be filtered from the final list of approvers. This is optional and defaults to `false`. Set this to `true` to prevent users in the `approvers` list from being able to self-approve workflows.
 * `fail-on-denial` is a boolean that indicates if the workflow should fail if any approver denies the approval. This is optional and defaults to `true`. Set this to `false` to allow the workflow to continue if any approver denies the approval.
 * `additional-approved-words` is a comma separated list of strings to expand the dictionary of words that indicate approval. This is optional and defaults to an empty string.
@@ -95,6 +97,7 @@ steps:
       minimum-approvals: 1
       issue-title: "Deploying v1.3.5 to prod from staging"
       issue-body: "Please approve or deny the deployment of version v1.3.5."
+      issue-labels: "approval-required,deployment"
       exclude-workflow-initiator-as-approver: false
       additional-approved-words: ''
       additional-denied-words: ''
