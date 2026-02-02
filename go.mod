@@ -1,4 +1,4 @@
-module github.com/trstringer/manual-approval
+module github.com/tdixon-azimutlab/manual-approval
 
 go 1.24.0
 

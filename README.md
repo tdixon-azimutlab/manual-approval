@@ -1,7 +1,13 @@
 
 # Manual Workflow Approval
 
-[![ci](https://github.com/trstringer/manual-approval/actions/workflows/ci.yaml/badge.svg)](https://github.com/trstringer/manual-approval/actions/workflows/ci.yaml)
+[![ci](https://github.com/tdixon-azimutlab/manual-approval/actions/workflows/ci.yaml/badge.svg)](https://github.com/tdixon-azimutlab/manual-approval/actions/workflows/ci.yaml)
+
+## Credits
+
+This is a fork of [manual-approval](https://github.com/trstringer/manual-approval) by [trstringer](https://github.com/trstringer).
+
+## Overview
 
 Pause a GitHub Actions workflow and require manual approval from one or more approvers before continuing.
 
@@ -42,7 +48,7 @@ Starting from v1.10.0, the behaviour for issue contents has changed:
 
 ```yaml
 steps:
-  - uses: trstringer/manual-approval@v1
+  - uses: tdixon-azimutlab/manual-approval@v1
     with:
       secret: ${{ github.TOKEN }}
       approvers: user1,user2,org-team1
@@ -90,7 +96,7 @@ The file method works unless the file itself is so big that after breaking it in
 
 ```yaml
 steps:
-  - uses: trstringer/manual-approval@v1
+  - uses: tdixon-azimutlab/manual-approval@v1
     with:
       secret: ${{ github.TOKEN }}
       approvers: user1,user2,org-team1
@@ -131,7 +137,7 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
       - name: Wait for approval
-        uses: trstringer/manual-approval@v1
+        uses: tdixon-azimutlab/manual-approval@v1
         with:
           secret: ${{ steps.generate_token.outputs.token }}
           approvers: myteam
@@ -155,7 +161,7 @@ For instance, if you want your manual approval step to timeout after an hour, yo
 jobs:
   approval:
     steps:
-      - uses: trstringer/manual-approval@v1
+      - uses: tdixon-azimutlab/manual-approval@v1
         timeout-minutes: 60
     ...
 ```
@@ -165,7 +171,7 @@ jobs:
   approval:
     timeout-minutes: 10
     steps:
-      - uses: trstringer/manual-approval@v1
+      - uses: tdixon-azimutlab/manual-approval@v1
 
 ```
 
@@ -196,13 +202,13 @@ For more information on permissions, please look at the [GitHub documentation](h
 To test out your code in an action, you need to build the image and push it to a different container registry repository. For instance, if I want to test some code, I won't build the image with the main image repository. Prior to this, comment out the label binding the image to a repo:
 
 ```dockerfile
-# LABEL org.opencontainers.image.source https://github.com/trstringer/manual-approval
+# LABEL org.opencontainers.image.source https://github.com/tdixon-azimutlab/manual-approval
 ```
 
 Build the image:
 
 ```shell
-VERSION=1.7.1-rc.1 make IMAGE_REPO=ghcr.io/trstringer/manual-approval-test build
+VERSION=1.0.1-rc.1 make IMAGE_REPO=ghcr.io/tdixon-azimutlab/manual-approval-test build
 ```
 
 *Note: The image version can be whatever you want, as this image wouldn't be pushed to production. It is only for testing.*
@@ -210,23 +216,23 @@ VERSION=1.7.1-rc.1 make IMAGE_REPO=ghcr.io/trstringer/manual-approval-test build
 Push the image to your container registry:
 
 ```shell
-VERSION=1.7.1-rc.1 make IMAGE_REPO=ghcr.io/trstringer/manual-approval-test push
+VERSION=1.0.1-rc.1 make IMAGE_REPO=ghcr.io/tdixon-azimutlab/manual-approval-test push
 ```
 
 To test out the image, you will need to modify `action.yaml` so that it points to your new image that you're testing:
 
 ```yaml
-  image: docker://ghcr.io/trstringer/manual-approval-test:1.7.0-rc.1
+  image: docker://ghcr.io/tdixon-azimutlab/manual-approval-test:1.0.0-rc.1
 ```
 
 Then, to test out the image, run a workflow specifying your dev branch:
 
 ```yaml
 - name: Wait for approval
-  uses: your-github-user/manual-approval@your-dev-branch
+  uses: tdixon-azimutlab/manual-approval@your-dev-branch
   with:
     secret: ${{ secrets.GITHUB_TOKEN }}
-    approvers: trstringer
+    approvers: your-username
 ```
 
 For `uses`, this should point to your repo and dev branch.
@@ -235,10 +241,10 @@ For `uses`, this should point to your repo and dev branch.
 
 ### Create a release
 
-1. Build and push the new image: `$ VERSION=1.7.0 make build_push`.
+1. Build and push the new image: `$ VERSION=1.0.0 make build_push`.
 2. Create a release branch and modify `action.yaml` to point to the new image.
 3. Open and merge a PR to add these changes to the default branch.
 4. Make sure to fetch the new changes into your local repo: `$ git checkout main && git fetch origin && git merge origin main`.
 5. Delete the `v1` tag locally and remotely: `$ git tag -d v1 && git push --delete origin v1`.
-6. Create and push new tags: `$ git tag v1.7.0 && git tag v1 && git push origin --tags`.
+6. Create and push new tags: `$ git tag v1.0.0 && git tag v1 && git push origin --tags`.
 7. Create the GitHub project release.

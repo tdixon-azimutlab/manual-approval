@@ -1,4 +1,4 @@
-IMAGE_REPO=ghcr.io/trstringer/manual-approval
+IMAGE_REPO=ghcr.io/tdixon-azimutlab/manual-approval
 TARGET_PLATFORM=linux/amd64,linux/arm64,linux/arm/v8
 
 .PHONY: tidy
@@ -19,7 +19,7 @@ build_push:
 		echo "VERSION is required"; \
 		exit 1; \
 	fi
-	docker buildx create --use --name mybuilder
+	docker buildx inspect mybuilder > /dev/null 2>&1 || docker buildx create --name mybuilder --use
 	docker buildx build --push --platform $(TARGET_PLATFORM) -t $(IMAGE_REPO):$(VERSION) .
 	docker buildx rm mybuilder
 
