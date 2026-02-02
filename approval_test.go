@@ -84,14 +84,14 @@ func TestCreateApprovalIssue_WithLabels(t *testing.T) {
 				HTMLURL: github.String("https://github.com/owner/repo/issues/1"),
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(issue)
+			_ = json.NewEncoder(w).Encode(issue)
 			return
 		}
 		// Handle comment creation
 		if r.Method == "POST" && strings.Contains(r.URL.Path, "/comments") {
 			comment := &github.IssueComment{ID: github.Int64(1)}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(comment)
+			_ = json.NewEncoder(w).Encode(comment)
 			return
 		}
 	}))
@@ -148,14 +148,14 @@ func TestCreateApprovalIssue_WithoutLabels(t *testing.T) {
 				HTMLURL: github.String("https://github.com/owner/repo/issues/1"),
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(issue)
+			_ = json.NewEncoder(w).Encode(issue)
 			return
 		}
 		// Handle comment creation
 		if r.Method == "POST" && strings.Contains(r.URL.Path, "/comments") {
 			comment := &github.IssueComment{ID: github.Int64(1)}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(comment)
+			_ = json.NewEncoder(w).Encode(comment)
 			return
 		}
 	}))
